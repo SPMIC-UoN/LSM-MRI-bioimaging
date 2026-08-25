@@ -1,0 +1,39 @@
+{
+  "_description": "Registry of LSM datasets for processing. Each entry contains metadata and processing status.",
+  "_last_updated": "2025-02-11",
+
+  "datasets": [
+    {
+      "strain": "temp/cp2bmrc/BXTB_1p1e",
+      "magnification": "4xobj_1p66xzoom_4um_step",
+      "session": "14-38-38_4xobj_1p66xzoom_BXTB_1p1e_4um_ls_fst_3x_10pc_Blaze",
+      "raw_folder": "250918_4xobj_1p66xzoom_BXTB_1p1e_4um_ls_fst_3x_10pc_14-38-38",
+      "channels": ["C00", "C01"],
+      "voxel_size": [4.0, 0.98, 0.98],
+      "ds_factor": [8, 32, 32],
+      "status": {
+        "raw_available": true,
+        "h5_converted": false,
+        "saf_complete": false,
+        "cellpose_complete": false
+      },
+      "notes": "4x magnification - main processing target"
+    },
+    {
+      "strain": "20260408_BXTF_1p2d_DONT_DELETE",
+      "magnification": "4xobj_1p66zoom_4um_step",
+      "session": "12-09-44_4x_1p66xx_BXTF_1p2_561_640_ls_ft3_Blaze",
+      "raw_folder": "260408_4x_1p66xx_BXTF_1p2_561_640_ls_ft3_12-09-44",
+      "channels": ["C00", "C01"],
+      "voxel_size": [4.0, 0.98, 0.98],
+      "ds_factor": [8, 32, 32],
+      "status": {
+        "raw_available": true,
+        "h5_converted": false,
+        "saf_complete": false,
+        "cellpose_complete": false
+      },
+      "notes": "4x magnification - main processing target"
+    }
+  ]
+}

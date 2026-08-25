@@ -1,0 +1,376 @@
+---
+#   _______ _____ _____  _                    _       _
+#  |__   __|_   _|  __ \| |                  (_)     | |
+#     | |    | | | |__) | |     ___  ___ _ __ _ _ __ | |_ ___
+#     | |    | | |  _  /| |    / __|/ __| '__| | '_ \| __/ __|
+#     | |   _| |_| | \ \| |____\__ \ (__| |  | | |_) | |_\__ \
+#     |_|  |_____|_|  \_\______|___/\___|_|  |_| .__/ \__|___/
+#                                              | |
+#                                              |_|
+#
+# Copyright (C) 2018-2024 University of Oxford
+# Part of the FMRIB Software Library (FSL)
+# Author: Istvan N. Huszar
+# Generalised by: Stephania Assimopoulos
+
+# This is a configuration file for 3D-to-3D volume-to-volume registration.
+
+# Further fields might be added under any section at the user's convenience,
+# but removing fields may lead to the breakdown of the registration script.
+# YAML formatting conventions apply. Syntax errors may cause a breakdown.
+# Metric units have been defined here as millimetres, but as long as all inputs
+# are consistent, they may equally represent micrometres, inches, or any other
+# unit of length.
+
+
+# ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ HEADER ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ #
+
+# Configuration file metadata for descriptive and record-keeping purposes.
+header:
+  author: Istvan N Huszar, edited by Amy Howard
+  title: Nottingham 3D-to-3D Volume Registration Routine
+  description: Developed for registration of light sheet to MRI
+
+
+# ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ GENERAL ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ #
+
+# Configurations to define the context, the flow, and the output of the
+# registration script.
+general:
+  # Operating system: linux or macosx
+  system: linux
+  # Cost function used to quantify the alignment of the images.
+  # MIND: modality-independent neighbourhood descriptor
+  # MI: normalised mutual information
+  cost: MIND
+  # Order of the registration substages.
+  # Any substage may be skipped or repeated. This also allows the registration
+  # to be continued from a previous result by loading the appropriate TImage
+  # files as inputs (see later).
+  stages: [rigid-fine, anisotropic-scaling, affine, nonlinear]
+  # stages: [rigid-coarse, rigid-fine, affine, nonlinear]
+  # Output directory (it will be created if it does not exist)
+  outputdir: "__OUTPUT_DIR__"
+  # Status messages of at least 'loglevel' priority will be included in the logs
+  # Priority levels: debug (10), info (20), warning (30), error (40),
+  # critical (50)
+  loglevel: debug
+  # Display warnings: true or false
+  warnings: false
+  # Display status messages (logs): true or false
+  verbose: true
+  # Name of the internal logger instance
+  name: v2v
+  # Log file (overwrites existing logs); contents are defined by 'loglevel'.
+  # If null, no logs will be saved to disk, but they may still be displayed.
+  logfile: "__LOGFILE__"
+  # Parameter log file (overwrites existing parameter logs)
+  # If null, parameter updates will not be recorded.
+  paramlogfile: "__PARAM_LOGFILE__"
+
+
+# ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ INPUT IMAGES ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ #
+
+source:
+  # Input path (NIfTI or TImage format)
+  # If the input is a TImage, all other fields in this section are ignored.
+  file: "__SOURCE_FILE__"
+  # Image resolution in mm/vx. For anisotropic volumes, please specify a
+  # 3-element array with the voxel sizes: e.g., [0.25, 0.25, 2.2]. If null,
+  # the resolution is assumed to be 1 mm/vx. Instead of directly specifying
+  # the resolution, this can be inferred from the metadata (see next).
+  resolution: null   # <scalar> or [x, y, z] mm/vx
+  # If the input is a NIfTI file, and usesqform is true, the volume will be
+  # loaded with the sform matrix (or the qform if the sform is not set). If
+  # this is the preferred option, the resolution setting above should be left
+  # as null.
+  usesqform: true
+  # Data type in NumPy convention (e.g., f4: 32-bit floating-point)
+  dtype: f4
+  # If mem, the image data is loaded to memory, if hdd, it is kept on the disk.
+  storage: mem
+  # Specify or auto-generate a cost function mask for the 3D image.
+  mask: 
+    # Specify mask image using a full path to the image file. The mask image
+    # must have the same aspect ratio as the input image. No mask: null.
+    file: __SOURCE_MASK_FILE__
+    # Create a binary mask by segmenting the image using both a lower and an
+    # upper threshold value. Values are relative to the maximum intensity.
+    # Pixels with intensities lower than the thr, or higher than the uthr will
+    # be excluded from the registration. No mask: thr=0, uthr=1.
+    automask: {thr: 0.1, uthr: 1.0}
+    # Execute a function to generate a mask. The function must be defined in
+    # the registration script under the same name as it is referenced by here.
+    # See the source code for function templates. No mask: null.
+    function: null
+    # Normalise mask values to the [0, 1] range: true or false.
+    normalise: true
+  # Preview a central slice of the volume after preprocessing.
+  preview: false
+  # Save the processed volume in TImage format to the output directory.
+  export: true
+
+target:
+  # Input path (NIfTI or TImage format)
+  # If the input is a TImage, all other fields in this section are ignored.
+  file: "__TARGET_FILE__"
+  # Image resolution in mm/vx. For anisotropic volumes, please specify a
+  # 3-element array with the voxel sizes: e.g., [0.25, 0.25, 2.2]. If null,
+  # the resolution is assumed to be 1 mm/vx. Instead of directly specifying
+  # the resolution, this can be inferred from the metadata (see next).
+  resolution: null   # <scalar> or [x, y, z] mm/vx
+  # If the input is a NIfTI file, and usesqform is true, the volume will be
+  # loaded with the sform matrix (or the qform if the sform is not set). If
+  # this is the preferred option, the resolution setting above should be left
+  # as null.
+  usesqform: true
+  # Data type in NumPy convention (e.g., f4: 32-bit floating-point)
+  dtype: f4
+  # If mem, the image data is loaded to memory, if hdd, it is kept on the disk.
+  storage: mem
+  # Specify or auto-generate a cost function mask for the 3D image.
+  mask:
+    # Specify mask image using a full path to the image file. The mask image
+    # must have the same aspect ratio as the input image. No mask: null.
+    file: __TARGET_MASK_FILE__
+    # Create a binary mask by segmenting the image using both a lower and an
+    # upper threshold value. Values are relative to the maximum intensity.
+    # Pixels with intensities lower than the thr, or higher than the uthr will
+    # be excluded from the registration. No mask: thr=0, uthr=1.
+    automask: {thr: 0.1, uthr: 1.0}
+    # Execute a function to generate a mask. The function must be defined in
+    # the registration script under the same name as it is referenced by here.
+    # See the source code for function templates. No mask: null.
+    function: null
+    # Normalise mask values to the [0, 1] range: true or false.
+    normalise: true
+  # Preview a central slice of the volume after preprocessing.
+  preview: false
+  # Save the processed volume in TImage format to the output directory.
+  export: true
+
+
+# ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ PREPROCESSING ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ #
+
+# Operations to be carried out on the input images before registration.
+# For each input, the sequence of operations should be defined here, such that
+# the result of the first operation will be the input of the second operation.
+# Leave the fields empty ([]) for no operation. The operations must be
+# implemented in the registration script as functions under the same name by
+# which they are referenced here. For function templates, please see the source
+# code of the registration script. Operations are ignored for TImage inputs.
+
+preprocessing:
+  source: [centralise, match_resolution]
+  target: [centralise, dilate_mask]
+
+
+# ~~~~~~~~~~~~~~~~~~~~~~~~~ REGISTRATION PARAMETERS ~~~~~~~~~~~~~~~~~~~~~~~~~~ #
+
+# This section defines initial values and optimisation bounds for the
+# transformation parameters within each substage of the registration process.
+# The transformations are defined by the registration script as a chain of
+# elementary coordinate transformations. The first tx of the chain operates on
+# the voxel coordinates of the target image, and the last one maps these
+# onto the voxel coordinates of the source image.
+
+# The transformation chain has the following components (in order):
+# 1. 3D rotation about the centre of the target image
+# 2. 3D scaling: (s_x', s_y', s_z') anisotropic
+# 4. 3D translation: (t_x', t_y', t_z') mm
+# 5. 3D affine (affine3d): 12 parameters of the affine matrix (LR, top-down)
+# 6. 3D deformation field (warp): N parameters (N: number of voxels)
+
+regparams:
+
+# ::::::::::::::::::::::::: Initial values + bounds :::::::::::::::::::::::::: #
+
+  # Initial parameters
+  init:
+    rotation:
+      mode: deg                    # units
+      order: xyz                   # rotation axis order
+      x0: [ 0.0, 0.0, 0.0 ]        # initial value [unit]
+      lb: [-10, -10, -90]          # lower bound [unit]
+      ub: [10, 10, 90]             # upper bound [unit]
+    scale:
+      x0: [ 0.8 ]                  # initial values
+      lb: [ 0.7 ]                  # lower bounds
+      ub: [ 1.1 ]                  # upper bounds
+    anisotropic-scale:
+      x0: [ 1.0, 1.0, 1.0 ]        # initial values
+      lb: [ 0.8, 0.8, 0.7 ]        # lower bounds
+      ub: [ 1.3, 1.3, 1.4 ]        # upper bounds
+    translation:
+      x0: [ 0.0, 0.0, 0.0 ]         # initial values [mm]
+      lb: [ -5.0, -5.0, -1.0 ]      # lower bounds [mm]
+      ub: [ 5.0, 5.0, 1.0 ]         # upper bounds [mm]
+    affine:
+      x0: [1.0, 0.0, 0.0, 0.0,
+           0.0, 1.0, 0.0, 0.0,
+           0.0, 0.0, 1.0, 0.0]     # initial values (affine matrix)
+      lb: [0.8, -1.0, -1.0, -5.0,
+           -1.0, 0.8, -1.0, -5.0,
+           -1.0, -1.0, 0.8, -1.0]  # lower bounds
+      ub: [1.2, 1.0, 1.0, 5.0,
+           1.0, 1.2, 1.0, 5.0,
+           1.0, 1.0, 1.2, 1.0]     # upper bounds
+    nonlinear:
+      x0: 0.0                      # initial deformations [mm]
+      lb: null                     # lower bounds [mm]; null = unbounded
+      ub: null                     # upper bounds [mm]; null = unbounded
+
+# ::::::::::::::::::::::::: Stage 1 - site finding ::::::::::::::::::::::::::: #
+
+  # Stage 1 tries a sequence of 90-degree rotations to match the coarse
+  # orientation of the images.
+  rigid-coarse:
+    # Scaling factor for the input images. If <1, this stage uses downsampled
+    # versions of the images. This is recommended, since the global orientation
+    # can be most robustly found on the basis of coarse image features, not
+    # high-resolution details, as the latter will likely remain out of
+    # alignment at this coarse optimisation stage.
+    scale: 0.5
+    # Degrees of rotations about each axis. If 'combinations' are enabled, the
+    # 3D rotations are constructed as all combinations of the 3 input vectors.
+    # Otherwise, the input vectors are coupled elementwise to construct
+    # 3D rotations.
+    sequence:
+      x: [-180, -90, 0, 90]
+      y: [-180, -90, 0, 90]
+      z: [-180, -90, 0, 90]
+      combinations: true
+    # Full range of the translation parameters in millimetres. E.g., if
+    # xrange = [10, 10, 10], the largest distance the block can be moved from
+    # the initial site is [±5, ±5, ±5].
+    xrange: [10, 10, 10]   # mm
+    # Number of different positions to be tested across the full range of the
+    # parameters. E.g., if xrange = [10, 10, 10] and xstops = [3, 3, 3],
+    # altogether 27 positions will be tested as a combination of the following
+    # displacements: [-5, 0, 5] x [-5, 0, 5] x [-5, 0, 5] mm. A large number
+    # of tests will increase the computation time due to combinatorial
+    # explosion.
+    xstops: [10, 10, 10]
+    # Number of best initialisations to be fine-tuned to make the choice of the
+    # insertion site more robust.
+    n_best: 1
+    # Parameter change normalised to the full range of the parameters at
+    # the start of the fine optimisation. Larger values may facilitate faster
+    # convergence if the cost function is smooth. Otherwise, the accuracy of the
+    # optimisation may be limited. Parameters: 1 rotation [rad],
+    # 2 translations [mm].
+
+# :::::::::::::::::::::::: Stage 2 - rigid alignment ::::::::::::::::::::::::: #
+
+  # Joint BOBYQA optimisation of 1 scaling, 3 rotation, and 3 translation
+  # parameters (7 DOF). The optimisation starts at a coarse resolution, and
+  # proceeds through gradually higher resolution levels.
+
+  rigid-fine:
+    # Downsampling factors for the images that define the resolution levels.
+    scaling: [8, 6, 4, 2]
+    # Gaussian smoothing radii (sigma) in voxels at each resolution level.
+    # Smoothing is applied in equal amounts to both images. 0: no smoothing.
+    smoothing: [0, 0, 0, 0]
+    # Parameter changes normalised to the entire range of the parameters at
+    # the start of the optimisation.
+    opt_step: [0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1]
+    # Absolute parameter tolerances (stopping condition).
+    # Parameters: 3 rotation angles (rad), 1 scaling factor, 3 translations (mm)
+    xtol_abs: [0.001, 0.001, 0.001, 0.001, 0.001, 0.001, 0.001]
+    # Relative parameter tolerances (stopping condition).
+    xtol_rel: 0.001
+    # Live view of Stage 2. Recommended only for debugging.
+    visualise: false
+
+# :::::::::::::::::::::: Stage 3 - anisotropic scaling ::::::::::::::::::::::: #
+
+  # Joint BOBYQA optimisation of 3 scaling, 3 rotation, and 3 translation
+  # parameters (9 DOF). The optimisation starts at a coarse resolution,
+  # and proceeds through gradually higher resolution levels.
+
+  anisotropic-scaling:
+    # Downsampling factors for the images that define the resolution levels.
+    scaling: [6, 4, 2]
+    # Gaussian smoothing radii (sigma) in voxels at each resolution level.
+    # Smoothing is applied in equal amounts to both images. 0: no smoothing.
+    smoothing: [0, 0, 0]
+    # Parameter changes normalised to the entire range of the parameters at
+    # the start of the optimisation.
+    opt_step: [
+      0.1, 0.1, 0.1,
+      0.1, 0.1, 0.1,
+      0.1, 0.1, 0.1
+    ]
+    # Absolute parameter tolerances (stopping condition).
+    # Parameters: 3 rotation angles (rad), 1 scaling factor, 3 translations (mm)
+    xtol_abs: [
+      0.001, 0.001, 0.001,
+      0.001, 0.001, 0.001,
+      0.001, 0.001, 0.001
+    ]
+    # Relative parameter tolerances (stopping condition).
+    xtol_rel: 0.001
+    # Live view of Stage 2. Recommended only for debugging.
+    visualise: false
+
+# :::::::::::::::::::::::: Stage 4 - affine alignment :::::::::::::::::::::::: #
+
+  # BOBYQA optimisation of affine matrix parameters at multiple resolution
+  # levels.
+
+  affine:
+    # Downsampling factors to define the resolution levels.
+    scaling: [8, 6, 4, 2]  # in mm
+    # Gaussian smoothing radii (sigma) in pixels at each resolution level.
+    smoothing: [0, 0, 0, 0]
+    # Parameter changes normalised to the full range of the parameters at
+    # the start of the optimisation.
+    # Parameters: 12 parameters of the unraveled 2D affine matrix
+    # (left-to-right, top-down).
+    opt_step: [
+      0.05, 0.05, 0.05, 1.0,
+      0.05, 0.05, 0.05, 1.0,
+      0.05, 0.05, 0.05, 1.0,
+    ]
+    # Absolute parameter tolerances (stopping condition).
+    xtol_abs: [
+      0.001, 0.001, 0.001, 0.01,
+      0.001, 0.001, 0.001, 0.01,
+      0.001, 0.001, 0.001, 0.01,
+    ]
+    # Relative parameter tolerances (stopping condition).
+    xtol_rel: 0.001
+    # Live view of Stage 3. Recommended only for debugging.
+    visualise: false
+
+# :::::::::::::::::::::: Stage 5 - non-linear alignment :::::::::::::::::::::: #
+
+  # Optimising the vectors of a voxelwise-defined displacement field at
+  # multiple resolution levels.
+
+  nonlinear:
+    # Extent of spatial smoothing in the cost function calculation (px)
+    sigma: 1
+    # Kernel size for the cost function calculation (sigmas).
+    truncate: 1.5
+    # Weight factor of the regularisation term in the cost function. Increasing
+    # the weight leads to smoother but potentially less accurate deformations.
+    # Lower weights may lead to topological defects (e.g., foldover).
+    # Recommended range: 0.3-0.6
+    regweight: 0.4
+    # Downsampling factors to define the resolution levels.
+    scaling: [ 6, 4, 2 ]
+    # Gaussian smoothing radii (sigma) in pixels at each resolution level.
+    smoothing: [ 0, 0, 0 ]
+    # Absolute parameter tolerances (stopping condition).
+    xtol_abs: 0.1
+    # Relative parameter tolerances (stopping condition).
+    xtol_rel: 0.01
+    # Maximum number of iterations at each resolution level
+    # (stopping condition).
+    maxiter: [ 15, 10, 5 ]
+    # Live view of Stage 4. Recommended only for debugging.
+    visualise: false
+
+...

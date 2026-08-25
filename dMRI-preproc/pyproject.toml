@@ -1,0 +1,46 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "dmri-preproc"
+version = "1.0.0"
+description = "Preprocessing and biophysical modelling code for the ex-vivo mouse-brain dMRI paper (NORDIC, Gibbs, TOPUP/EDDY, DKI, SANDI)"
+readme = "README.md"
+requires-python = ">=3.10"
+license = { text = "MIT" }
+dependencies = [
+    "numpy",
+    "nibabel",
+    "typer>=0.12",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest",
+    "ruff",
+]
+
+[project.scripts]
+dmri-preproc = "dmri_preproc.cli:app"
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.setuptools.package-data]
+"dmri_preproc" = ["resources/*", "matlab/*"]
+
+[tool.ruff]
+line-length = 100
+src = ["src", "tests"]
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "UP", "B"]
+
+# Typer's canonical usage pattern requires calling typer.Option() in
+# argument defaults - not the general anti-pattern B008 warns about.
+[tool.ruff.lint.per-file-ignores]
+"src/dmri_preproc/cli.py" = ["B008"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
